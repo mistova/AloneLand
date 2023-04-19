@@ -23,7 +23,7 @@ public class BlankMapGenerator : MonoBehaviour
 
         float z = -(fieldSize / 2 + marginAmount) / Mathf.Sin(Mathf.Deg2Rad * fieldOfView / 2) * Mathf.Sin(Mathf.Deg2Rad * (90 - fieldOfView / 2));
 
-        cam.transform.position = new Vector3(fieldSize / 2 - 0.5f, fieldSize / 2 - 0.5f, z);
+        cam.transform.position = new Vector3(fieldSize / 2 - 0.5f, -fieldSize / 2 + 0.5f, z);
     }
 
     [SerializeField] SquareManager squareManager;
@@ -49,7 +49,7 @@ public class BlankMapGenerator : MonoBehaviour
 
                 squares[index].transform.localPosition = startPoints + Vector3.forward * i * unit + Vector3.right * j * unit;
 
-                squares[index].GetComponent<Renderer>().material.color = Color.white * ((i + j) % 2 + 1);
+                squares[index].GetComponent<Renderer>().material.color = Color.white * ((i + j + 1) % 2);
             }
         }
 

@@ -7,7 +7,7 @@ public class SquareManager : MonoBehaviour
     {
         regionColors = new List<Color>();
 
-        selectedColors = new List<int>();
+        selectedColorsIndexes = new List<int>();
     }
 
     internal void SetSquares(GameObject[] squares)
@@ -36,9 +36,10 @@ public class SquareManager : MonoBehaviour
 
     [SerializeField] Color[] colors;
     List<Color> regionColors;
+    int colorCount = 0;
 
     Vector2 currentHoldingIndexes = -Vector2.one, startIndexes = -Vector2.one;
-    List<int> selectedColors;
+    List<int> selectedColorsIndexes;
     internal void SetHoldingIndexes(Vector2 holdingIndexes, ClickState clickState)
     {
         if(clickState == ClickState.Clicked)
@@ -66,50 +67,110 @@ public class SquareManager : MonoBehaviour
 
     void PaintDifference(Vector2 oldIndexes, Vector2 newIndexes)
     {
-        for (int i = (int)startIndexes.y; i <= newIndexes.y; i++)
-        {
-            for (int j = (int)oldIndexes.x + 1; j <= newIndexes.x; j++)
-            {
-                materials[squareEdgeLenght * i + j].color = colors[regionColors.Count % colors.Length];
-            }
+        Vector2 sign = Vector2.one;
 
-            for (int j = (int)newIndexes.x + 1; j <= oldIndexes.x; j++)
+        if (startIndexes.x > newIndexes.x)
+            sign.x = -1;
+        if (startIndexes.y > newIndexes.y)
+            sign.y = -1;
+
+        for (int i = (int)startIndexes.x; (sign.x > 0 && i <= newIndexes.x) || (sign.x > 0 && i <= oldIndexes.x) || (sign.x < 0 && i >= newIndexes.x) || (sign.x < 0 && i >= oldIndexes.x); i += (int) sign.x)
+        {
+            for (int j = (int)startIndexes.y; (sign.y > 0 && j <= newIndexes.y) || (sign.y > 0 && j <= oldIndexes.y) || (sign.y < 0 && j >= newIndexes.y) || (sign.y < 0 && j >= oldIndexes.y); j += (int) sign.y)
             {
-                if (squareHolders[squareEdgeLenght * i + j] == -1)
+                if(((sign.y > 0 && j <= newIndexes.y) || (sign.y < 0 && j >= newIndexes.y)) && ((sign.x > 0 && i <= newIndexes.x) || (sign.x < 0 && i >= newIndexes.x)))
                 {
-                    materials[squareEdgeLenght * i + j].color = Color.white * ((i + j) % 2 + 1);
+                    materials[squareEdgeLenght * i + j].color = colors[colorCount % colors.Length];
                 }
                 else
                 {
-                    materials[squareEdgeLenght * i + j].color = regionColors[squareHolders[squareEdgeLenght * i + j]];
-                }
-            }
-        }
-
-        for (int i = (int)startIndexes.x; i <= newIndexes.x; i++)
-        {
-            for (int j = (int)oldIndexes.y + 1; j <= newIndexes.y; j++)
-            {
-                materials[squareEdgeLenght * i + j].color = colors[regionColors.Count % colors.Length];
-            }
-
-            for (int j = (int)newIndexes.y + 1; j <= oldIndexes.y; j++)
-            {
-                if (squareHolders[squareEdgeLenght * i + j] == -1)
-                {
-                    materials[squareEdgeLenght * i + j].color = Color.white * ((i + j) % 2 + 1);
-                }
-                else
-                {
-                    materials[squareEdgeLenght * i + j].color = regionColors[squareHolders[squareEdgeLenght * i + j]];
+                    if (squareHolders[squareEdgeLenght * i + j] == -1)
+                    {
+                        materials[squareEdgeLenght * i + j].color = Color.white * ((i + j + 1) % 2);
+                    }
+                    else
+                    {
+                        materials[squareEdgeLenght * i + j].color = regionColors[squareHolders[squareEdgeLenght * i + j]];
+                    }
                 }
             }
         }
     }
 
-    void SaveColors(Vector2 startIndexes, Vector2 EndIndexes)
+    void SaveColors(Vector2 startIndexes, Vector2 endIndexes)
     {
+        if(startIndexes.x > endIndexes.x)
+        {
+            float index = startIndexes.x;
+            startIndexes.x = endIndexes.x;
+            endIndexes.x = index;
+        }
 
+        if(startIndexes.y > endIndexes.y)
+        {
+            float index = startIndexes.y;
+            startIndexes.y = endIndexes.y;
+            endIndexes.y = index;
+        }
+
+        for (int i = (int)startIndexes.x; i < endIndexes.x; i++)
+        {
+            for (int j = (int)startIndexes.y; j < endIndexes.y; j++)
+            {
+                int index = squareEdgeLenght * i + j;
+
+                if (squareHolders[index] != -1 && !selectedColorsIndexes.Contains(squareHolders[index]))
+                    selectedColorsIndexes.Add(squareHolders[index]);
+
+                squareHolders[index] = regionColors.Count;
+            }
+        }
+
+        for (int i = 0; i < squareEdgeLenght; i++)
+        {
+            for (int j = 0; j < squareEdgeLenght; j++)
+            {
+                int index = squareEdgeLenght * i + j;
+
+                for(int k = 0; k < selectedColorsIndexes.Count; k++)
+                {
+                    if(selectedColorsIndexes[k] == squareHolders[index])
+                    {
+                        selectedColorsIndexes.RemoveAt(k);
+
+                        break;
+                    }
+                }
+            }
+        }
+
+        for (int k = 0; k < selectedColorsIndexes.Count; k++)
+        {
+            for(int i = selectedColorsIndexes[k] + 1; i < regionColors.Count; i++)
+            {
+                regionColors[i - 1] = regionColors[i];
+            }
+
+            for (int a = 0; a < squareEdgeLenght; a++)
+            {
+                for (int b = 0; b < squareEdgeLenght; b++)
+                {
+                    int index = squareEdgeLenght * a + b;
+
+                    if (squareHolders[index] > selectedColorsIndexes[k])
+                    {
+                        squareHolders[index]--;
+                    }
+
+                }
+            }
+
+            regionColors.RemoveAt(regionColors.Count - 1);
+        }
+
+        regionColors.Add(colors[colorCount % colors.Length]);
+
+        colorCount++;
     }
 
     void CheckIntervalIndexes()
